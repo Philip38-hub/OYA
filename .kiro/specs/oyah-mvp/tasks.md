@@ -8,43 +8,43 @@
   - Initialize Go modules with Gin and required packages
   - _Requirements: All requirements depend on proper project setup_
 
-- [ ] 2. Implement core mobile app foundation
-- [ ] 2.1 Create basic app navigation and routing structure
+- [x] 2. Implement core mobile app foundation
+- [x] 2.1 Create basic app navigation and routing structure
   - Set up React Navigation with stack navigator
   - Create placeholder screens for all main flows
   - Implement basic TypeScript interfaces for navigation
   - _Requirements: 1.1, 2.1_
 
-- [ ] 2.2 Implement Zustand state management stores
+- [x] 2.2 Implement Zustand state management stores
   - Create wallet authentication state store with actions
   - Create submission data state store
   - Create dashboard data state store with periodic refresh logic
   - Write unit tests for state management logic
   - _Requirements: 1.4, 5.5, 6.6_
 
-- [ ] 2.3 Set up styled-components theme and basic UI components
+- [x] 2.3 Set up styled-components theme and basic UI components
   - Create theme configuration with colors and typography
   - Implement reusable button, input, and status indicator components
   - Create loading and error state components
   - _Requirements: 2.2, 2.3, 6.3, 6.4, 6.5_
 
-- [ ] 3. Implement wallet authentication module
-- [ ] 3.1 Create Polkadot.js API integration
+- [x] 3. Implement wallet authentication module
+- [x] 3.1 Create Polkadot.js API integration
   - Set up @polkadot/api connection with Nova Wallet detection
   - Implement wallet connection logic with retry mechanism
   - Handle wallet extension detection and user account selection
   - Write unit tests for wallet connection scenarios
   - _Requirements: 1.1, 1.2, 1.3, 1.6_
 
-- [ ] 3.2 Build splash screen and wallet connection UI
+- [x] 3.2 Build splash screen and wallet connection UI
   - Create splash screen with "Connect Wallet to Witness" button
   - Implement wallet connection flow with loading states
   - Add error handling UI for connection failures
   - Navigate to main action screen on successful connection
   - _Requirements: 1.1, 1.5_
 
-- [ ] 4. Create main action screen interface
-- [ ] 4.1 Build main action screen with navigation buttons
+- [x] 4. Create main action screen interface
+- [x] 4.1 Build main action screen with navigation buttons
   - Create clean UI with camera and microphone action buttons
   - Implement navigation to image capture and audio recording modules
   - Add proper icons and labels for each action
