@@ -1,132 +1,164 @@
-# OYAH! - Decentralized Electoral Transparency
+# OYAH! MVP - Decentralized Electoral Transparency Platform
 
 OYAH! is a decentralized mobile application (dApp) that brings radical transparency and trust to the electoral process. The system empowers ordinary citizens and party agents to act as "witnesses" by securely submitting polling station results through Web3 technology.
 
 ## Project Structure
 
 ```
-├── mobile/          # React Native mobile application
-├── backend/         # Golang backend services
-└── .kiro/specs/     # Project specifications and requirements
+├── mobile/                 # React Native mobile application
+│   ├── src/               # Source code
+│   │   ├── components/    # Reusable UI components
+│   │   ├── screens/       # Screen components
+│   │   ├── services/      # API and external services
+│   │   ├── stores/        # Zustand state management
+│   │   ├── types/         # TypeScript type definitions
+│   │   └── utils/         # Utility functions
+│   ├── assets/            # Static assets (images, icons)
+│   └── package.json       # Mobile dependencies
+├── backend/               # Golang backend services
+│   ├── cmd/               # Application entry points
+│   ├── internal/          # Internal packages
+│   │   ├── handlers/      # HTTP handlers
+│   │   ├── models/        # Data models
+│   │   ├── services/      # Business logic
+│   │   └── storage/       # Data storage layer
+│   ├── pkg/               # Public packages
+│   └── go.mod             # Go dependencies
+└── .kiro/                 # Kiro IDE specifications
+    └── specs/             # Feature specifications
 ```
 
-## Mobile Application (React Native + TypeScript)
+## Technology Stack
+
+### Mobile Application
+- **Framework:** React Native with Expo
+- **Language:** TypeScript
+- **Web3:** Polkadot.js API with Nova Wallet integration
+- **State Management:** Zustand
+- **Styling:** Styled Components + NativeWind (Tailwind CSS)
+- **HTTP Client:** Axios
+- **ML Processing:** TensorFlow Lite (OCR & Speech-to-Text)
+
+### Backend Services
+- **Language:** Go 1.24+
+- **Framework:** Gin HTTP framework
+- **WebSocket:** Gorilla WebSocket
+- **Storage:** In-memory (Redis for production)
+- **API:** RESTful JSON APIs
+
+## Development Setup
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
-- Expo CLI
+- Node.js 18+ and npm
+- Go 1.24+
+- Expo CLI (`npm install -g @expo/cli`)
+- Nova Wallet browser extension (for testing)
 
-### Setup
-```bash
-cd mobile
-npm install
-```
+### Mobile Application Setup
 
-### Development
-```bash
-# Start development server
-npm start
+1. Navigate to the mobile directory:
+   ```bash
+   cd mobile
+   ```
 
-# Run on Android
-npm run android
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-# Run on iOS
-npm run ios
+3. Start the development server:
+   ```bash
+   npm start
+   ```
 
-# Run on web
-npm run web
+4. Run on specific platform:
+   ```bash
+   npm run android  # Android
+   npm run ios      # iOS
+   npm run web      # Web browser
+   ```
 
-# Linting and formatting
-npm run lint
-npm run format
-npm run type-check
+### Backend Setup
 
-# Build Tailwind CSS (for development)
-npm run build-css
-```
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
 
-### Key Dependencies
-- **@polkadot/api**: Web3 integration with Polkadot ecosystem
-- **zustand**: State management
-- **nativewind**: Tailwind CSS for React Native
-- **tailwindcss**: Utility-first CSS framework
-- **axios**: HTTP client
-- **@react-navigation/native**: Navigation
+2. Install dependencies:
+   ```bash
+   make deps
+   ```
 
-### Styling with Tailwind CSS
-The mobile app uses NativeWind to bring Tailwind CSS to React Native:
+3. Run in development mode:
+   ```bash
+   make dev
+   ```
 
-- **Theme Configuration**: Custom color palette in `tailwind.config.js`
-- **Utility Classes**: Use Tailwind classes directly in `className` props
-- **Common Styles**: Predefined style combinations in `src/utils/styles.ts`
-- **Theme Constants**: Design tokens in `src/utils/theme.ts`
-- **Components**: Reusable components with Tailwind styling in `src/components/`
+4. Build for production:
+   ```bash
+   make build
+   ```
 
-Example usage:
-```tsx
-<View className="flex-1 bg-white items-center justify-center p-5">
-  <Text className="text-4xl font-bold text-primary-800 mb-3">
-    OYAH!
-  </Text>
-</View>
-```
+5. Run tests:
+   ```bash
+   make test
+   ```
 
-## Backend (Golang + Gin)
+## Development Commands
 
-### Prerequisites
-- Go 1.21+
+### Mobile
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint issues
+- `npm run type-check` - TypeScript type checking
+- `npm run format` - Format code with Prettier
 
-### Setup
-```bash
-cd backend
-go mod download
-```
-
-### Development
-```bash
-# Run development server
-make dev
-
-# Build application
-make build
-
-# Run tests
-make test
-
-# Format code
-make fmt
-```
-
-### Key Dependencies
-- **gin-gonic/gin**: Web framework
-- **gorilla/websocket**: WebSocket support
+### Backend
+- `make dev` - Run development server
+- `make build` - Build binary
+- `make test` - Run tests
+- `make fmt` - Format Go code
+- `make clean` - Clean build artifacts
 
 ## Core Features
 
-1. **Wallet Authentication**: Connect Nova Wallet for secure identity verification
-2. **Image Capture & OCR**: Capture Form 34A and extract vote counts automatically
-3. **Audio Recording & STT**: Record official announcements and extract vote counts
-4. **Consensus Verification**: Crowdsourced verification through majority consensus
-5. **Live Dashboard**: Real-time polling results and verification status
-6. **Voting Process Management**: Create and manage electoral processes
+1. **Wallet Authentication** - Secure connection via Nova Wallet
+2. **Image Capture & OCR** - Extract vote counts from Form 34A
+3. **Audio Recording & STT** - Process official announcements
+4. **Consensus Verification** - Crowdsourced result validation
+5. **Live Dashboard** - Real-time tally updates
+6. **Voting Process Management** - Multi-station electoral processes
 
-## Development Workflow
+## API Endpoints
 
-The project follows a spec-driven development approach:
-1. Requirements gathering and clarification
-2. Design document creation
-3. Implementation task breakdown
-4. Incremental development with testing
+### Backend API (Port 8080)
+- `GET /health` - Health check
+- `POST /api/v1/submitResult` - Submit polling results
+- `GET /api/v1/getTally/{votingProcessId}` - Get tally data
+- `POST /api/v1/voting-process` - Create voting process
+- `PUT /api/v1/voting-process/{id}/start` - Start voting process
 
-See `.kiro/specs/oyah-mvp/` for detailed specifications.
+### WebSocket
+- Real-time tally updates on consensus changes
+- Automatic client reconnection support
 
-## Getting Started
+## Environment Configuration
 
-1. Clone the repository
-2. Set up the mobile application (see Mobile Application section)
-3. Set up the backend services (see Backend section)
-4. Follow the implementation tasks in `.kiro/specs/oyah-mvp/tasks.md`
+### Mobile
+Configuration is handled through Expo's app.json and environment-specific builds.
+
+### Backend
+Copy `.env.example` to `.env` and configure:
+```bash
+cp .env.example .env
+```
+
+## Contributing
+
+1. Follow the established code style (ESLint for mobile, gofmt for backend)
+2. Write tests for new features
+3. Update documentation as needed
+4. Use the Kiro spec workflow for new features
 
 ## License
 
