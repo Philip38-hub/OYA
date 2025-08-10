@@ -120,15 +120,15 @@
   - Handle success/error responses and user feedback
   - _Requirements: 5.4, 5.5, 5.6, 5.7_
 
-- [ ] 8. Build live tally dashboard
-- [ ] 8.1 Create dashboard UI components
+- [x] 8. Build live tally dashboard
+- [x] 8.1 Create dashboard UI components
   - Build national tally display with candidate vote counts
   - Create polling station list with status indicators
   - Implement yellow (Pending) and green (Verified) status indicators
   - Add clean mobile-optimized layout
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 8.2 Implement WebSocket real-time data synchronization
+- [x] 8.2 Implement WebSocket real-time data synchronization
   - Set up WebSocket client connection for live tally updates
   - Implement automatic reconnection logic with exponential backoff
   - Add fallback to 30-second HTTP polling when WebSocket unavailable
