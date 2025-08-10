@@ -51,15 +51,15 @@
   - Write component tests for navigation behavior
   - _Requirements: 2.1, 2.2, 2.4, 2.5_
 
-- [ ] 5. Implement image capture and OCR processing
-- [ ] 5.1 Set up native camera integration
+- [-] 5. Implement image capture and OCR processing
+- [x] 5.1 Set up native camera integration
   - Configure React Native camera permissions and setup
   - Create document scanning optimized camera interface
   - Implement image capture with preview functionality
   - Handle camera permissions and error states
   - _Requirements: 3.1_
 
-- [ ] 5.2 Integrate TensorFlow Lite OCR model
+- [x] 5.2 Integrate TensorFlow Lite OCR model
   - Set up TensorFlow Lite React Native integration
   - Load and initialize OCR model for on-device processing
   - Implement image preprocessing for better OCR accuracy
