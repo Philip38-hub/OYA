@@ -75,44 +75,44 @@
   - Handle OCR failure fallback to manual entry
   - _Requirements: 3.4, 3.5, 3.7_
 
-- [ ] 6. Implement audio recording and speech-to-text
-- [ ] 6.1 Set up native audio recording
+- [x] 6. Implement audio recording and speech-to-text
+- [x] 6.1 Set up native audio recording
   - Configure audio recording permissions and setup
   - Create simple audio recording interface with start/stop controls
   - Implement audio file handling and storage
   - Handle audio permissions and error states
   - _Requirements: 4.1_
 
-- [ ] 6.2 Integrate TensorFlow Lite speech-to-text model
+- [x] 6.2 Integrate TensorFlow Lite speech-to-text model
   - Set up TensorFlow Lite STT model integration
   - Implement audio preprocessing for better transcription
   - Create text parsing logic for vote count extraction
   - Write unit tests with mock transcription responses
   - _Requirements: 4.2, 4.3_
 
-- [ ] 6.3 Build audio confirmation screen
+- [x] 6.3 Build audio confirmation screen
   - Reuse confirmation screen component from image capture
   - Pre-fill extracted numbers from speech-to-text processing
   - Implement manual correction for audio-extracted data
   - Handle STT failure fallback to manual entry
   - _Requirements: 4.4, 4.5, 4.7_
 
-- [ ] 7. Create data payload assembly and transmission
-- [ ] 7.1 Implement GPS location services
+- [x] 7. Create data payload assembly and transmission
+- [x] 7.1 Implement GPS location services
   - Set up location permissions and GPS access
   - Create location service for coordinate extraction
   - Handle location unavailable scenarios
   - Add location accuracy validation
   - _Requirements: 5.3_
 
-- [ ] 7.2 Build JSON payload assembly logic
+- [x] 7.2 Build JSON payload assembly logic
   - Create payload builder with wallet address, station ID, GPS, timestamp, and results
   - Implement submission type tracking (image_ocr vs audio_stt)
   - Add payload validation before transmission
   - Write unit tests for payload structure
   - _Requirements: 5.1, 5.2, 5.4_
 
-- [ ] 7.3 Implement API client for result submission
+- [x] 7.3 Implement API client for result submission
   - Create HTTP client using Axios for backend communication
   - Implement POST request to /api/v1/submitResult endpoint
   - Add retry logic for failed transmissions
