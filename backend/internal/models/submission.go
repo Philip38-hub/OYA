@@ -1,27 +1,40 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
-// GPSCoordinates represents geographical coordinates
+// GPSCoordinates represents GPS location data
 type GPSCoordinates struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Latitude  float64 `json:"latitude" binding:"required"`
+	Longitude float64 `json:"longitude" binding:"required"`
 }
 
 // Submission represents a polling result submission from a mobile client
 type Submission struct {
 	ID               string            `json:"id"`
-	WalletAddress    string            `json:"walletAddress"`
-	PollingStationID string            `json:"pollingStationId"`
-	GPSCoordinates   GPSCoordinates    `json:"gpsCoordinates"`
-	Timestamp        time.Time         `json:"timestamp"`
-	Results          map[string]int    `json:"results"`
-	SubmissionType   string            `json:"submissionType"` // "image_ocr" | "audio_stt"
+	WalletAddress    string            `json:"walletAddress" binding:"required"`
+	PollingStationID string            `json:"pollingStationId" binding:"required"`
+	GPSCoordinates   GPSCoordinates    `json:"gpsCoordinates" binding:"required"`
+	Timestamp        time.Time         `json:"timestamp" binding:"required"`
+	Results          map[string]int    `json:"results" binding:"required"`
+	SubmissionType   string            `json:"submissionType" binding:"required,oneof=image_ocr audio_stt"`
 	Confidence       float64           `json:"confidence"`
 	ProcessedAt      time.Time         `json:"processedAt"`
 }
 
-// PollingStation represents a polling station with its verification status
+// SubmissionRequest represents the incoming request payload for submissions
+type SubmissionRequest struct {
+	WalletAddress    string            `json:"walletAddress" binding:"required"`
+	PollingStationID string            `json:"pollingStationId" binding:"required"`
+	GPSCoordinates   GPSCoordinates    `json:"gpsCoordinates" binding:"required"`
+	Timestamp        time.Time         `json:"timestamp" binding:"required"`
+	Results          map[string]int    `json:"results" binding:"required"`
+	SubmissionType   string            `json:"submissionType" binding:"required,oneof=image_ocr audio_stt"`
+	Confidence       float64           `json:"confidence"`
+}
+
+// PollingStation represents a polling station with its submissions and status
 type PollingStation struct {
 	ID              string            `json:"id"`
 	VotingProcessID string            `json:"votingProcessId"`
@@ -32,21 +45,9 @@ type PollingStation struct {
 	ConfidenceLevel float64           `json:"confidenceLevel"`
 }
 
-// VotingProcess represents a complete voting process with multiple polling stations
-type VotingProcess struct {
-	ID              string      `json:"id"`
-	Title           string      `json:"title"`
-	Position        string      `json:"position"`
-	Candidates      []Candidate `json:"candidates"`
-	PollingStations []string    `json:"pollingStations"`
-	Status          string      `json:"status"` // "Setup" | "Active" | "Complete"
-	CreatedAt       time.Time   `json:"createdAt"`
-	StartedAt       *time.Time  `json:"startedAt,omitempty"`
-	CompletedAt     *time.Time  `json:"completedAt,omitempty"`
-}
-
-// Candidate represents a candidate in the voting process
-type Candidate struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+// ErrorResponse represents API error responses
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Code    string `json:"code"`
+	Details string `json:"details,omitempty"`
 }

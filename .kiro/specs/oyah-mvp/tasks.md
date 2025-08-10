@@ -136,15 +136,15 @@
   - Update UI reactively when WebSocket messages arrive
   - _Requirements: 6.6, 6.7, 6.8, 6.9, 6.10_
 
-- [ ] 9. Implement backend ingestion API
-- [ ] 9.1 Set up Golang backend project structure
+- [x] 9. Implement backend ingestion API
+- [x] 9.1 Set up Golang backend project structure
   - Initialize Go modules with Gin framework
   - Create project structure with handlers, models, and services
   - Set up CORS configuration for mobile app communication
   - Add structured logging and request tracing
   - _Requirements: 7.1_
 
-- [ ] 9.2 Create submission validation and storage
+- [x] 9.2 Create submission validation and storage
   - Implement POST /api/v1/submitResult endpoint with Gin
   - Add JSON payload validation for all required fields
   - Create in-memory storage structure for submissions
@@ -153,7 +153,7 @@
   - Write unit tests for validation scenarios
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.6_
 
-- [ ] 9.3 Trigger consensus processing on submission
+- [x] 9.3 Trigger consensus processing on submission
   - Integrate consensus engine with submission handler
   - Update polling station status after each submission
   - Add error handling for consensus processing failures
