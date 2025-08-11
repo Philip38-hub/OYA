@@ -197,15 +197,15 @@
   - Update submission validation to verify polling station belongs to active voting process
   - _Requirements: 9.7, 9.8_
 
-- [ ] 12. Create results API for dashboard data
-- [ ] 12.1 Implement tally calculation and aggregation
+- [x] 12. Create results API for dashboard data
+- [x] 12.1 Implement tally calculation and aggregation
   - Create aggregated tally calculation from verified results only
   - Implement polling station status aggregation within voting processes
   - Add data freshness tracking with timestamps
   - Handle zero-result scenarios gracefully
   - _Requirements: 10.3, 10.6, 10.7_
 
-- [ ] 12.2 Build GET /api/v1/getTally/{votingProcessId} endpoint
+- [x] 12.2 Build GET /api/v1/getTally/{votingProcessId} endpoint
   - Implement JSON response with voting process details, aggregated tally, and station details
   - Add proper HTTP status codes and error handling
   - Include verification status and confidence levels
@@ -236,14 +236,14 @@
   - Add user-friendly error messages and recovery options
   - _Requirements: 1.6, 3.7, 4.7, 5.6_
 
-- [ ] 12.2 Add backend error handling and logging
+- [x] 12.2 Add backend error handling and logging
   - Implement structured error responses with proper HTTP codes
   - Add request validation error handling
   - Create consensus engine error recovery
   - Add comprehensive logging for debugging and monitoring
   - _Requirements: 7.4_
 
-- [ ] 12.3 Write integration tests for end-to-end flows
+- [x] 12.3 Write integration tests for end-to-end flows
   - Create tests for complete submission flow from mobile to backend
   - Test consensus algorithm with multiple submissions
   - Verify dashboard data accuracy with backend integration

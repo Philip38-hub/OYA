@@ -13,18 +13,22 @@ import (
 
 // SubmissionHandler handles submission-related HTTP requests
 type SubmissionHandler struct {
-	storageService    *services.StorageService
-	validationService *services.ValidationService
-	consensusService  *services.ConsensusService
-	logger           *logrus.Logger
+	storageService         *services.StorageService
+	validationService      *services.ValidationService
+	consensusService       *services.ConsensusService
+	consensusRecovery      *services.ConsensusRecoveryService
+	errorHandler          *services.ErrorHandler
+	logger                *logrus.Logger
 }
 
 // NewSubmissionHandler creates a new submission handler
-func NewSubmissionHandler(storage *services.StorageService, validation *services.ValidationService, consensus *services.ConsensusService, logger *logrus.Logger) *SubmissionHandler {
+func NewSubmissionHandler(storage *services.StorageService, validation *services.ValidationService, consensus *services.ConsensusService, consensusRecovery *services.ConsensusRecoveryService, errorHandler *services.ErrorHandler, logger *logrus.Logger) *SubmissionHandler {
 	return &SubmissionHandler{
 		storageService:    storage,
 		validationService: validation,
 		consensusService:  consensus,
+		consensusRecovery: consensusRecovery,
+		errorHandler:     errorHandler,
 		logger:           logger,
 	}
 }
@@ -46,14 +50,12 @@ func (h *SubmissionHandler) SubmitResult(c *gin.Context) {
 
 	var req models.SubmissionRequest
 	
+	// Store request ID in context for error handler
+	c.Set("request_id", requestID)
+
 	// Bind JSON payload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.WithError(err).Error("Failed to bind JSON payload")
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error:   "Invalid JSON payload",
-			Code:    "INVALID_JSON",
-			Details: err.Error(),
-		})
+		h.errorHandler.HandleValidationError(c, err, "json_payload")
 		return
 	}
 
@@ -66,12 +68,12 @@ func (h *SubmissionHandler) SubmitResult(c *gin.Context) {
 
 	// Validate submission
 	if err := h.validationService.ValidateSubmission(req); err != nil {
-		logger.WithError(err).Error("Submission validation failed")
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error:   "Validation failed",
-			Code:    "VALIDATION_ERROR",
-			Details: err.Error(),
-		})
+		context := map[string]interface{}{
+			"wallet_address":     req.WalletAddress,
+			"polling_station_id": req.PollingStationID,
+			"submission_type":    req.SubmissionType,
+		}
+		h.errorHandler.HandleError(c, err, context)
 		return
 	}
 
@@ -89,29 +91,43 @@ func (h *SubmissionHandler) SubmitResult(c *gin.Context) {
 
 	// Store submission
 	if err := h.storageService.StoreSubmission(submission); err != nil {
-		logger.WithError(err).Error("Failed to store submission")
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "Failed to store submission",
-			Code:    "STORAGE_ERROR",
-			Details: err.Error(),
-		})
+		h.errorHandler.HandleServiceError(c, err, "storage", "store_submission")
 		return
 	}
 
 	logger.WithField("submission_id", submission.ID).Info("Submission stored successfully")
 
-	// Trigger consensus processing
+	// Trigger consensus processing with recovery
 	consensusResult, err := h.consensusService.ProcessConsensus(submission.PollingStationID)
 	if err != nil {
-		logger.WithError(err).Error("Consensus processing failed")
-		// Don't fail the request if consensus processing fails
-		// The submission is already stored successfully
-		logger.Warn("Continuing despite consensus processing failure")
+		// Attempt consensus recovery
+		logger.WithError(err).Warning("Consensus processing failed, attempting recovery")
+		
+		recoveryResult := h.consensusRecovery.RecoverConsensusProcessing(submission.PollingStationID, err)
+		
+		if recoveryResult.Success {
+			consensusResult = recoveryResult.FinalResult
+			logger.WithFields(logrus.Fields{
+				"recovery_attempts": recoveryResult.AttemptsUsed,
+				"recovery_actions":  recoveryResult.RecoveryActions,
+				"consensus_status":  consensusResult.Status,
+			}).Info("Consensus recovery successful")
+		} else {
+			// Log the failure but don't fail the request
+			logger.WithFields(logrus.Fields{
+				"recovery_attempts": recoveryResult.AttemptsUsed,
+				"recovery_actions":  recoveryResult.RecoveryActions,
+				"recovery_error":    recoveryResult.Error,
+			}).Error("Consensus recovery failed")
+			
+			// Continue without consensus result
+			logger.Warning("Continuing despite consensus processing and recovery failure")
+		}
 	} else {
 		logger.WithFields(logrus.Fields{
 			"consensus_status":     consensusResult.Status,
 			"consensus_confidence": consensusResult.ConfidenceLevel,
-		}).Info("Consensus processing completed")
+		}).Info("Consensus processing completed successfully")
 	}
 
 	// Prepare response

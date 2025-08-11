@@ -28,10 +28,14 @@ func main() {
 	storageService := services.NewStorageService()
 	validationService := services.NewValidationService(storageService)
 	consensusService := services.NewConsensusService(storageService, logger)
+	consensusRecoveryService := services.NewConsensusRecoveryService(storageService, consensusService, logger)
+	tallyService := services.NewTallyService(storageService, logger)
+	errorHandler := services.NewErrorHandler(logger)
 
 	// Initialize handlers
-	submissionHandler := handlers.NewSubmissionHandler(storageService, validationService, consensusService, logger)
+	submissionHandler := handlers.NewSubmissionHandler(storageService, validationService, consensusService, consensusRecoveryService, errorHandler, logger)
 	votingProcessHandler := handlers.NewVotingProcessHandler(storageService, logger)
+	tallyHandler := handlers.NewTallyHandler(tallyService, errorHandler, logger)
 
 	// Create Gin router
 	r := gin.New()
@@ -72,10 +76,8 @@ func main() {
 		v1.PUT("/voting-process/:id/start", votingProcessHandler.StartVotingProcess)
 		v1.GET("/voting-process/:id", votingProcessHandler.GetVotingProcess)
 		
-		// Placeholder for future endpoints
-		v1.GET("/getTally/:votingProcessId", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"message": "Get tally endpoint - to be implemented"})
-		})
+		// Tally endpoints
+		v1.GET("/getTally/:votingProcessId", tallyHandler.GetTally)
 	}
 
 	// Start server

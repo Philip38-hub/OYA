@@ -44,8 +44,12 @@ func setupTestHandler() (*SubmissionHandler, *gin.Engine) {
 	storageService.StoreVotingProcess(votingProcess)
 	storageService.UpdateVotingProcessStatus("test-voting-process", "Active")
 
+	// Create additional services
+	consensusRecoveryService := services.NewConsensusRecoveryService(storageService, consensusService, logger)
+	errorHandler := services.NewErrorHandler(logger)
+
 	// Create handler
-	handler := NewSubmissionHandler(storageService, validationService, consensusService, logger)
+	handler := NewSubmissionHandler(storageService, validationService, consensusService, consensusRecoveryService, errorHandler, logger)
 
 	// Setup Gin router
 	gin.SetMode(gin.TestMode)
@@ -159,9 +163,9 @@ func TestSubmissionHandler_SubmitResult_InvalidJSON(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	// Verify error response
-	if response.Code != "INVALID_JSON" {
-		t.Errorf("Expected error code 'INVALID_JSON', got %s", response.Code)
+	// Verify error response (error handler now classifies JSON binding errors as validation errors)
+	if response.Code != "VALIDATION_ERROR" {
+		t.Errorf("Expected error code 'VALIDATION_ERROR', got %s", response.Code)
 	}
 }
 
@@ -262,9 +266,9 @@ func TestSubmissionHandler_SubmitResult_MissingRequiredFields(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	// Verify error response
-	if response.Code != "INVALID_JSON" {
-		t.Errorf("Expected error code 'INVALID_JSON', got %s", response.Code)
+	// Verify error response (error handler now classifies JSON binding errors as validation errors)
+	if response.Code != "VALIDATION_ERROR" {
+		t.Errorf("Expected error code 'VALIDATION_ERROR', got %s", response.Code)
 	}
 }
 
