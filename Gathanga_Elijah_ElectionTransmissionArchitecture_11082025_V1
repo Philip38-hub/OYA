@@ -1,0 +1,63 @@
+# Election Transmission Platform Architecture
+
+## Overview
+This document describes a blockchain-based system for secure, transparent, and verifiable transmission of presidential election results from polling stations, using **Form 34A** as the primary data source.
+
+## Components
+- **Mobile App (Flutter)**: Handles user registration, captures Form 34A images, and uploads them to IPFS.
+- **Blockchain Layer (Polkadot Substrate)**: Stores IPFS hashes, manages voting records, and executes consensus rules.
+- **Consensus Engine**: Enables registered voters from a specific polling station to upvote the correct result until a threshold is met.
+- **Results Dashboard**: Displays aggregated results in real-time for public transparency.
+
+## Architecture Diagram
+```mermaid
+graph TD
+  A[User with Mobile App] -->|Capture Image| B[IPFS]
+  B --> C[Blockchain]
+  A -->|Vote for Result| C
+  C --> D[Consensus Engine]
+  D --> E[Public Results Dashboard]
+
+# Smart Contract Interfaces
+
+    1. registerUser(address, nationalID) — Registers a unique voter.
+
+    2. submitResult(pollingStationID, ipfsHash, resultData) — Submits election results to the blockchain.
+
+    3. voteOnResult(pollingStationID, resultID) — Allows voters to validate results.
+
+    4. finalizeResult(pollingStationID) — Confirms the final tally after consensus.
+
+# Data Flow
+
+    1. Registration: User registers with a national ID and biometric verification.
+
+    2. Image Capture: User photographs the official Form 34A.
+
+    3. Upload to IPFS: Image is stored on IPFS and returns an immutable hash.
+
+    4. Blockchain Storage: IPFS hash and result metadata are recorded on-chain.
+
+    5. Voting Process: Voters validate and upvote the correct result.
+
+    6. Consensus Achievement: The system finalizes the result after reaching a quorum.
+
+    7. Result Display: Dashboard presents aggregated national and regional tallies.
+
+# Threat Mitigation
+
+    1. Multiple account prevention: National ID + biometric validation.
+
+    2. Data integrity: Immutable IPFS storage prevents tampering.
+
+    3. Vote security: On-chain verification ensures unique, auditable votes.
+
+# Next Steps
+
+    1. Develop and deploy Substrate-based smart contracts.
+
+    2. Build Flutter mobile app with integrated IPFS upload capability.
+
+    3. Implement consensus algorithms and threshold logic.
+
+    4. Launch a test network for pilot deployment.
