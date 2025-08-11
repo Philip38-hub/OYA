@@ -26,11 +26,12 @@ func main() {
 
 	// Initialize services
 	storageService := services.NewStorageService()
-	validationService := services.NewValidationService()
+	validationService := services.NewValidationService(storageService)
 	consensusService := services.NewConsensusService(storageService, logger)
 
 	// Initialize handlers
 	submissionHandler := handlers.NewSubmissionHandler(storageService, validationService, consensusService, logger)
+	votingProcessHandler := handlers.NewVotingProcessHandler(storageService, logger)
 
 	// Create Gin router
 	r := gin.New()
@@ -65,6 +66,11 @@ func main() {
 	{
 		// Submission endpoints
 		v1.POST("/submitResult", submissionHandler.SubmitResult)
+		
+		// Voting process management endpoints
+		v1.POST("/voting-process", votingProcessHandler.CreateVotingProcess)
+		v1.PUT("/voting-process/:id/start", votingProcessHandler.StartVotingProcess)
+		v1.GET("/voting-process/:id", votingProcessHandler.GetVotingProcess)
 		
 		// Placeholder for future endpoints
 		v1.GET("/getTally/:votingProcessId", func(c *gin.Context) {

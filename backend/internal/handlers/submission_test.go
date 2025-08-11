@@ -18,7 +18,7 @@ import (
 func setupTestHandler() (*SubmissionHandler, *gin.Engine) {
 	// Create test services
 	storageService := services.NewStorageService()
-	validationService := services.NewValidationService()
+	validationService := services.NewValidationService(storageService)
 	
 	// Create test logger (silent for tests)
 	logger := logrus.New()
@@ -26,6 +26,23 @@ func setupTestHandler() (*SubmissionHandler, *gin.Engine) {
 
 	// Create consensus service
 	consensusService := services.NewConsensusService(storageService, logger)
+
+	// Create an active voting process for testing
+	votingProcess := models.VotingProcess{
+		ID:       "test-voting-process",
+		Title:    "Test Election",
+		Position: "Test Position",
+		Candidates: []models.Candidate{
+			{ID: "candidate-a", Name: "Candidate A"},
+			{ID: "candidate-b", Name: "Candidate B"},
+		},
+		PollingStations: []string{"STATION_001"},
+		Status:          "Setup",
+	}
+	
+	// Store and activate the voting process
+	storageService.StoreVotingProcess(votingProcess)
+	storageService.UpdateVotingProcessStatus("test-voting-process", "Active")
 
 	// Create handler
 	handler := NewSubmissionHandler(storageService, validationService, consensusService, logger)

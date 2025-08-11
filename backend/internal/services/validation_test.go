@@ -8,7 +8,7 @@ import (
 )
 
 func TestValidationService_ValidateWalletAddress(t *testing.T) {
-	validator := NewValidationService()
+	validator := NewValidationService(nil)
 
 	tests := []struct {
 		name    string
@@ -48,7 +48,7 @@ func TestValidationService_ValidateWalletAddress(t *testing.T) {
 }
 
 func TestValidationService_ValidatePollingStationID(t *testing.T) {
-	validator := NewValidationService()
+	validator := NewValidationService(nil)
 
 	tests := []struct {
 		name      string
@@ -98,7 +98,7 @@ func TestValidationService_ValidatePollingStationID(t *testing.T) {
 }
 
 func TestValidationService_ValidateGPSCoordinates(t *testing.T) {
-	validator := NewValidationService()
+	validator := NewValidationService(nil)
 
 	tests := []struct {
 		name   string
@@ -143,7 +143,7 @@ func TestValidationService_ValidateGPSCoordinates(t *testing.T) {
 }
 
 func TestValidationService_ValidateTimestamp(t *testing.T) {
-	validator := NewValidationService()
+	validator := NewValidationService(nil)
 
 	now := time.Now()
 
@@ -190,7 +190,7 @@ func TestValidationService_ValidateTimestamp(t *testing.T) {
 }
 
 func TestValidationService_ValidateResults(t *testing.T) {
-	validator := NewValidationService()
+	validator := NewValidationService(nil)
 
 	tests := []struct {
 		name    string
@@ -240,7 +240,7 @@ func TestValidationService_ValidateResults(t *testing.T) {
 }
 
 func TestValidationService_ValidateSubmissionType(t *testing.T) {
-	validator := NewValidationService()
+	validator := NewValidationService(nil)
 
 	tests := []struct {
 		name           string
@@ -280,7 +280,7 @@ func TestValidationService_ValidateSubmissionType(t *testing.T) {
 }
 
 func TestValidationService_ValidateConfidence(t *testing.T) {
-	validator := NewValidationService()
+	validator := NewValidationService(nil)
 
 	tests := []struct {
 		name       string
@@ -325,7 +325,7 @@ func TestValidationService_ValidateConfidence(t *testing.T) {
 }
 
 func TestValidationService_ValidateSubmission(t *testing.T) {
-	validator := NewValidationService()
+	validator := NewValidationService(nil)
 
 	validSubmission := models.SubmissionRequest{
 		WalletAddress:    "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
@@ -375,6 +375,158 @@ func TestValidationService_ValidateSubmission(t *testing.T) {
 			}(),
 			wantErr:     true,
 			description: "should fail validation for invalid GPS coordinates",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validator.ValidateSubmission(tt.submission)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateSubmission() error = %v, wantErr %v - %s", err, tt.wantErr, tt.description)
+			}
+		})
+	}
+}
+
+func TestValidationService_ValidatePollingStationInActiveVotingProcess(t *testing.T) {
+	// Create storage service and add a voting process
+	storage := NewStorageService()
+	
+	// Create a voting process
+	votingProcess := models.VotingProcess{
+		ID:       "vp-test",
+		Title:    "Test Election",
+		Position: "Mayor",
+		Candidates: []models.Candidate{
+			{ID: "c1", Name: "Candidate 1"},
+		},
+		PollingStations: []string{"STATION_001", "STATION_002"},
+		Status:          "Setup",
+	}
+	
+	err := storage.StoreVotingProcess(votingProcess)
+	if err != nil {
+		t.Fatalf("Failed to store voting process: %v", err)
+	}
+
+	validator := NewValidationService(storage)
+
+	tests := []struct {
+		name      string
+		stationID string
+		setup     func()
+		wantErr   bool
+	}{
+		{
+			name:      "station not in active voting process (Setup status)",
+			stationID: "STATION_001",
+			setup:     func() {}, // voting process is in Setup status
+			wantErr:   true,
+		},
+		{
+			name:      "station in active voting process",
+			stationID: "STATION_001",
+			setup: func() {
+				// Activate the voting process
+				storage.UpdateVotingProcessStatus("vp-test", "Active")
+			},
+			wantErr: false,
+		},
+		{
+			name:      "station not in any voting process",
+			stationID: "STATION_999",
+			setup:     func() {}, // station doesn't exist in any voting process
+			wantErr:   true,
+		},
+		{
+			name:      "station in completed voting process",
+			stationID: "STATION_002",
+			setup: func() {
+				// Complete the voting process
+				storage.UpdateVotingProcessStatus("vp-test", "Complete")
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+			err := validator.validatePollingStationInActiveVotingProcess(tt.stationID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePollingStationInActiveVotingProcess() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidationService_ValidateSubmissionWithVotingProcess(t *testing.T) {
+	// Create storage service and add a voting process
+	storage := NewStorageService()
+	
+	// Create and store an active voting process
+	votingProcess := models.VotingProcess{
+		ID:       "vp-integration-test",
+		Title:    "Integration Test Election",
+		Position: "President",
+		Candidates: []models.Candidate{
+			{ID: "c1", Name: "Alice"},
+			{ID: "c2", Name: "Bob"},
+		},
+		PollingStations: []string{"STATION_ACTIVE"},
+		Status:          "Setup",
+	}
+	
+	err := storage.StoreVotingProcess(votingProcess)
+	if err != nil {
+		t.Fatalf("Failed to store voting process: %v", err)
+	}
+	
+	// Activate the voting process
+	err = storage.UpdateVotingProcessStatus("vp-integration-test", "Active")
+	if err != nil {
+		t.Fatalf("Failed to activate voting process: %v", err)
+	}
+
+	validator := NewValidationService(storage)
+
+	validSubmission := models.SubmissionRequest{
+		WalletAddress:    "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+		PollingStationID: "STATION_ACTIVE",
+		GPSCoordinates: models.GPSCoordinates{
+			Latitude:  40.7128,
+			Longitude: -74.0060,
+		},
+		Timestamp: time.Now().Add(-1 * time.Hour),
+		Results: map[string]int{
+			"Alice": 100,
+			"Bob":   150,
+		},
+		SubmissionType: "image_ocr",
+		Confidence:     0.85,
+	}
+
+	tests := []struct {
+		name        string
+		submission  models.SubmissionRequest
+		wantErr     bool
+		description string
+	}{
+		{
+			name:        "valid submission to active voting process",
+			submission:  validSubmission,
+			wantErr:     false,
+			description: "should pass validation for submission to active voting process",
+		},
+		{
+			name: "submission to inactive polling station",
+			submission: func() models.SubmissionRequest {
+				s := validSubmission
+				s.PollingStationID = "STATION_INACTIVE"
+				return s
+			}(),
+			wantErr:     true,
+			description: "should fail validation for submission to inactive polling station",
 		},
 	}
 

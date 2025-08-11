@@ -45,6 +45,33 @@ type PollingStation struct {
 	ConfidenceLevel float64           `json:"confidenceLevel"`
 }
 
+// Candidate represents a candidate in a voting process
+type Candidate struct {
+	ID   string `json:"id" binding:"required"`
+	Name string `json:"name" binding:"required"`
+}
+
+// VotingProcess represents a voting process with multiple polling stations
+type VotingProcess struct {
+	ID              string      `json:"id"`
+	Title           string      `json:"title" binding:"required"`
+	Position        string      `json:"position" binding:"required"`
+	Candidates      []Candidate `json:"candidates" binding:"required,min=1"`
+	PollingStations []string    `json:"pollingStations" binding:"required,min=1"`
+	Status          string      `json:"status"` // "Setup" | "Active" | "Complete"
+	CreatedAt       time.Time   `json:"createdAt"`
+	StartedAt       *time.Time  `json:"startedAt,omitempty"`
+	CompletedAt     *time.Time  `json:"completedAt,omitempty"`
+}
+
+// VotingProcessRequest represents the incoming request payload for creating voting processes
+type VotingProcessRequest struct {
+	Title           string      `json:"title" binding:"required"`
+	Position        string      `json:"position" binding:"required"`
+	Candidates      []Candidate `json:"candidates" binding:"required,min=1"`
+	PollingStations []string    `json:"pollingStations" binding:"required,min=1"`
+}
+
 // ErrorResponse represents API error responses
 type ErrorResponse struct {
 	Error   string `json:"error"`

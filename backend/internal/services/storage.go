@@ -8,12 +8,13 @@ import (
 	"oyah-backend/internal/models"
 )
 
-// StorageService provides in-memory storage for submissions and polling stations
+// StorageService provides in-memory storage for submissions, polling stations, and voting processes
 type StorageService struct {
-	submissions     map[string][]models.Submission // key: pollingStationId
-	pollingStations map[string]*models.PollingStation // key: pollingStationId
+	submissions       map[string][]models.Submission // key: pollingStationId
+	pollingStations   map[string]*models.PollingStation // key: pollingStationId
 	walletSubmissions map[string]map[string]*models.Submission // key: walletAddress -> pollingStationId -> submission
-	mutex           sync.RWMutex
+	votingProcesses   map[string]*models.VotingProcess // key: votingProcessId
+	mutex             sync.RWMutex
 }
 
 // NewStorageService creates a new storage service instance
@@ -22,6 +23,7 @@ func NewStorageService() *StorageService {
 		submissions:       make(map[string][]models.Submission),
 		pollingStations:   make(map[string]*models.PollingStation),
 		walletSubmissions: make(map[string]map[string]*models.Submission),
+		votingProcesses:   make(map[string]*models.VotingProcess),
 	}
 }
 
@@ -138,4 +140,128 @@ func (s *StorageService) removeSubmissionFromStation(submissionID, stationID str
 			break
 		}
 	}
+}
+
+// StoreVotingProcess stores a new voting process
+func (s *StorageService) StoreVotingProcess(votingProcess models.VotingProcess) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	// Check if voting process already exists
+	if _, exists := s.votingProcesses[votingProcess.ID]; exists {
+		return fmt.Errorf("voting process already exists: %s", votingProcess.ID)
+	}
+
+	// Store the voting process
+	s.votingProcesses[votingProcess.ID] = &votingProcess
+
+	// Initialize polling stations for this voting process
+	for _, stationID := range votingProcess.PollingStations {
+		if _, exists := s.pollingStations[stationID]; !exists {
+			s.pollingStations[stationID] = &models.PollingStation{
+				ID:              stationID,
+				VotingProcessID: votingProcess.ID,
+				Status:          "Pending",
+				Submissions:     []models.Submission{},
+			}
+		} else {
+			// Update existing station to associate with voting process
+			s.pollingStations[stationID].VotingProcessID = votingProcess.ID
+		}
+	}
+
+	return nil
+}
+
+// GetVotingProcess returns a voting process by ID
+func (s *StorageService) GetVotingProcess(processID string) (*models.VotingProcess, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	if process, exists := s.votingProcesses[processID]; exists {
+		// Return a copy to avoid race conditions
+		processCopy := *process
+		return &processCopy, nil
+	}
+	return nil, fmt.Errorf("voting process not found: %s", processID)
+}
+
+// UpdateVotingProcessStatus updates the status of a voting process
+func (s *StorageService) UpdateVotingProcessStatus(processID, status string) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	process, exists := s.votingProcesses[processID]
+	if !exists {
+		return fmt.Errorf("voting process not found: %s", processID)
+	}
+
+	process.Status = status
+	now := time.Now()
+
+	switch status {
+	case "Active":
+		if process.StartedAt == nil {
+			process.StartedAt = &now
+		}
+	case "Complete":
+		if process.CompletedAt == nil {
+			process.CompletedAt = &now
+		}
+	}
+
+	return nil
+}
+
+// GetAllVotingProcesses returns all voting processes
+func (s *StorageService) GetAllVotingProcesses() map[string]*models.VotingProcess {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	// Return a copy to avoid race conditions
+	result := make(map[string]*models.VotingProcess)
+	for k, v := range s.votingProcesses {
+		processCopy := *v
+		result[k] = &processCopy
+	}
+	return result
+}
+
+// GetPollingStationsByVotingProcess returns all polling stations for a voting process
+func (s *StorageService) GetPollingStationsByVotingProcess(processID string) ([]*models.PollingStation, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	process, exists := s.votingProcesses[processID]
+	if !exists {
+		return nil, fmt.Errorf("voting process not found: %s", processID)
+	}
+
+	var stations []*models.PollingStation
+	for _, stationID := range process.PollingStations {
+		if station, exists := s.pollingStations[stationID]; exists {
+			stationCopy := *station
+			stations = append(stations, &stationCopy)
+		}
+	}
+
+	return stations, nil
+}
+
+// IsPollingStationInActiveVotingProcess checks if a polling station belongs to an active voting process
+func (s *StorageService) IsPollingStationInActiveVotingProcess(stationID string) bool {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	station, exists := s.pollingStations[stationID]
+	if !exists || station.VotingProcessID == "" {
+		return false
+	}
+
+	process, exists := s.votingProcesses[station.VotingProcessID]
+	if !exists {
+		return false
+	}
+
+	return process.Status == "Active"
 }

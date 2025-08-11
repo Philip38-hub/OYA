@@ -12,15 +12,17 @@ import (
 // ValidationService provides validation logic for submissions
 type ValidationService struct {
 	walletAddressRegex *regexp.Regexp
+	storageService     *StorageService
 }
 
 // NewValidationService creates a new validation service instance
-func NewValidationService() *ValidationService {
+func NewValidationService(storage *StorageService) *ValidationService {
 	// Polkadot wallet address regex (SS58 format)
 	walletRegex := regexp.MustCompile(`^[1-9A-HJ-NP-Za-km-z]{47,48}$`)
 	
 	return &ValidationService{
 		walletAddressRegex: walletRegex,
+		storageService:     storage,
 	}
 }
 
@@ -59,6 +61,11 @@ func (v *ValidationService) ValidateSubmission(req models.SubmissionRequest) err
 	// Validate confidence (should be between 0 and 1)
 	if err := v.validateConfidence(req.Confidence); err != nil {
 		return fmt.Errorf("invalid confidence: %w", err)
+	}
+
+	// Validate that polling station belongs to an active voting process
+	if err := v.validatePollingStationInActiveVotingProcess(req.PollingStationID); err != nil {
+		return fmt.Errorf("polling station validation failed: %w", err)
 	}
 
 	return nil
@@ -166,6 +173,21 @@ func (v *ValidationService) validateSubmissionType(submissionType string) error 
 func (v *ValidationService) validateConfidence(confidence float64) error {
 	if confidence < 0 || confidence > 1 {
 		return fmt.Errorf("confidence must be between 0 and 1")
+	}
+
+	return nil
+}
+
+// validatePollingStationInActiveVotingProcess validates that the polling station belongs to an active voting process
+func (v *ValidationService) validatePollingStationInActiveVotingProcess(stationID string) error {
+	if v.storageService == nil {
+		// If no storage service is provided, skip this validation (for backward compatibility)
+		return nil
+	}
+
+	// Check if polling station belongs to an active voting process
+	if !v.storageService.IsPollingStationInActiveVotingProcess(stationID) {
+		return fmt.Errorf("polling station %s does not belong to an active voting process", stationID)
 	}
 
 	return nil
