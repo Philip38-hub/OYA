@@ -30,12 +30,17 @@ func main() {
 	consensusService := services.NewConsensusService(storageService, logger)
 	consensusRecoveryService := services.NewConsensusRecoveryService(storageService, consensusService, logger)
 	tallyService := services.NewTallyService(storageService, logger)
+	webSocketService := services.NewWebSocketService(tallyService, logger)
 	errorHandler := services.NewErrorHandler(logger)
+
+	// Wire WebSocket service with consensus service for real-time updates
+	consensusService.SetWebSocketService(webSocketService)
 
 	// Initialize handlers
 	submissionHandler := handlers.NewSubmissionHandler(storageService, validationService, consensusService, consensusRecoveryService, errorHandler, logger)
 	votingProcessHandler := handlers.NewVotingProcessHandler(storageService, logger)
 	tallyHandler := handlers.NewTallyHandler(tallyService, errorHandler, logger)
+	webSocketHandler := handlers.NewWebSocketHandler(webSocketService, logger)
 
 	// Create Gin router
 	r := gin.New()
@@ -65,6 +70,9 @@ func main() {
 		})
 	})
 
+	// WebSocket endpoint (outside of API versioning)
+	r.GET("/ws", webSocketHandler.HandleWebSocket)
+
 	// API v1 routes group
 	v1 := r.Group("/api/v1")
 	{
@@ -78,6 +86,9 @@ func main() {
 		
 		// Tally endpoints
 		v1.GET("/getTally/:votingProcessId", tallyHandler.GetTally)
+		
+		// WebSocket stats endpoint
+		v1.GET("/websocket/stats", webSocketHandler.GetWebSocketStats)
 	}
 
 	// Start server

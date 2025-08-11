@@ -18,9 +18,10 @@ type ConsensusResult struct {
 
 // ConsensusService handles consensus processing for polling station submissions
 type ConsensusService struct {
-	storageService *StorageService
-	logger         *logrus.Logger
-	threshold      int // Minimum submissions required for consensus
+	storageService   *StorageService
+	webSocketService *WebSocketService
+	logger           *logrus.Logger
+	threshold        int // Minimum submissions required for consensus
 }
 
 // NewConsensusService creates a new consensus service instance
@@ -30,6 +31,12 @@ func NewConsensusService(storage *StorageService, logger *logrus.Logger) *Consen
 		logger:         logger,
 		threshold:      3, // Minimum 3 submissions for consensus
 	}
+}
+
+// SetWebSocketService sets the WebSocket service for broadcasting updates
+func (c *ConsensusService) SetWebSocketService(wsService *WebSocketService) {
+	c.webSocketService = wsService
+	c.logger.Info("WebSocket service attached to consensus engine")
 }
 
 // ProcessConsensus processes consensus for a polling station after a new submission
@@ -75,6 +82,22 @@ func (c *ConsensusService) ProcessConsensus(pollingStationID string) (*Consensus
 			return nil, fmt.Errorf("failed to update polling station status: %w", err)
 		}
 
+		// Trigger WebSocket broadcast for pending status update if WebSocket service is available
+		if c.webSocketService != nil {
+			// Get the voting process ID for this polling station
+			station, err := c.storageService.GetPollingStation(pollingStationID)
+			if err == nil && station.VotingProcessID != "" {
+				// Broadcast tally update for the voting process
+				broadcastErr := c.webSocketService.BroadcastTallyUpdate(station.VotingProcessID)
+				if broadcastErr != nil {
+					logger.WithError(broadcastErr).Error("Failed to broadcast tally update via WebSocket")
+					// Don't return error - consensus processing succeeded, broadcast failure is not critical
+				} else {
+					logger.WithField("voting_process_id", station.VotingProcessID).Info("WebSocket tally update broadcast triggered for pending status")
+				}
+			}
+		}
+
 		return result, nil
 	}
 
@@ -97,6 +120,22 @@ func (c *ConsensusService) ProcessConsensus(pollingStationID string) (*Consensus
 		"status":           result.Status,
 		"confidence_level": result.ConfidenceLevel,
 	}).Info("Consensus processing completed")
+
+	// Trigger WebSocket broadcast if consensus status changed and WebSocket service is available
+	if c.webSocketService != nil {
+		// Get the voting process ID for this polling station
+		station, err := c.storageService.GetPollingStation(pollingStationID)
+		if err == nil && station.VotingProcessID != "" {
+			// Broadcast tally update for the voting process
+			broadcastErr := c.webSocketService.BroadcastTallyUpdate(station.VotingProcessID)
+			if broadcastErr != nil {
+				logger.WithError(broadcastErr).Error("Failed to broadcast tally update via WebSocket")
+				// Don't return error - consensus processing succeeded, broadcast failure is not critical
+			} else {
+				logger.WithField("voting_process_id", station.VotingProcessID).Info("WebSocket tally update broadcast triggered")
+			}
+		}
+	}
 
 	return result, nil
 }

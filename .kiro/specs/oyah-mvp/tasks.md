@@ -213,15 +213,15 @@
   - Write integration tests for API endpoint
   - _Requirements: 10.1, 10.2, 10.4, 10.5_
 
-- [ ] 13. Implement WebSocket service for real-time updates
-- [ ] 13.1 Create WebSocket hub and client management
+- [x] 13. Implement WebSocket service for real-time updates
+- [x] 13.1 Create WebSocket hub and client management
   - Set up WebSocket server using Gorilla WebSocket library
   - Implement client connection management with registration/deregistration
   - Create broadcast mechanism for tally updates
   - Add connection heartbeat and cleanup for disconnected clients
   - _Requirements: 6.6, 6.8_
 
-- [ ] 13.2 Integrate WebSocket with consensus engine
+- [x] 13.2 Integrate WebSocket with consensus engine
   - Trigger WebSocket broadcasts when consensus status changes
   - Send tally updates to all connected clients when results are verified
   - Include voting process ID in update messages for client filtering
