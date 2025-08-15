@@ -14,6 +14,7 @@ module.exports = {
     '^@expo/vector-icons$': '<rootDir>/__mocks__/expo-vector-icons.js',
     '^@tensorflow/tfjs$': '<rootDir>/__mocks__/tensorflow.js',
     '^@tensorflow/tfjs-react-native$': '<rootDir>/__mocks__/tensorflow-react-native.js',
+    '^@react-native-ml-kit/text-recognition$': '<rootDir>/__mocks__/@react-native-ml-kit-text-recognition.js',
   },
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {

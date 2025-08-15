@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Alert } from 'react-native';
+import { View, Text, ScrollView, Alert, StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { StyledButton, StyledInput, Card, ErrorMessage, MLErrorHandler, NetworkErrorHandler, ErrorBoundary } from '@/components';
@@ -267,15 +267,15 @@ export const ConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <ErrorBoundary>
-      <ScrollView className="flex-1 bg-white">
-        <View className="p-5">
-          <Text className="text-2xl font-bold text-gray-800 mb-4 text-center">
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.container}>
+          <Text style={styles.title}>
             Confirm Results
           </Text>
           
           {/* Show ML error handler if processing failed */}
           {showMLError && errorRecovery.state.error && (
-            <View className="mb-6">
+            <View style={styles.errorContainer}>
               <MLErrorHandler
                 error={errorRecovery.state.error}
                 processingType={submissionType === 'image_ocr' ? 'OCR' : 'Speech-to-Text'}
@@ -292,7 +292,7 @@ export const ConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
 
           {/* Show network error handler if submission failed */}
           {showNetworkError && errorRecovery.state.error && (
-            <View className="mb-6">
+            <View style={styles.errorContainer}>
               <NetworkErrorHandler
                 error={errorRecovery.state.error}
                 onRetry={performSubmission}
@@ -307,7 +307,7 @@ export const ConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
           )}
           
           {ocrFailed && !showMLError ? (
-            <View className="mb-6">
+            <View style={styles.errorContainer}>
               <ErrorMessage
                 title="Extraction Failed"
                 message={`${submissionType === 'image_ocr' ? 'OCR processing' : 'Speech-to-text processing'} could not extract vote counts. Please enter the results manually.`}
@@ -315,18 +315,18 @@ export const ConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
               />
             </View>
           ) : !showMLError && !showNetworkError && (
-            <Text className="text-base text-gray-600 text-center leading-6 mb-6">
+            <Text style={styles.subtitle}>
               Review and edit the extracted data before submission
             </Text>
           )}
         
-        <Text className="text-sm text-gray-500 mb-4">
+        <Text style={styles.sourceText}>
           Source: {submissionType === 'image_ocr' ? 'Image OCR' : 'Audio Speech-to-Text'}
           {ocrFailed && ' (Manual Entry)'}
         </Text>
         
         {validationErrors.general && (
-          <View className="mb-4">
+          <View style={styles.errorContainer}>
             <ErrorMessage
               message={validationErrors.general}
               fullScreen={false}
@@ -335,7 +335,7 @@ export const ConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
         )}
         
         <Card padding="lg">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
+          <Text style={styles.cardTitle}>
             Vote Counts
           </Text>
           
@@ -351,21 +351,21 @@ export const ConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
             />
           ))}
           
-          <View className="mt-4 pt-4 border-t border-gray-200">
-            <Text className="text-base font-semibold text-gray-700">
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>
               Total Votes: {getTotalVotes()}
             </Text>
           </View>
         </Card>
         
-        <View className="mt-8 space-y-4">
+        <View style={styles.buttonContainer}>
           <StyledButton
             title={isSubmitting ? "Submitting..." : "✅ Confirm & Submit"}
             variant="primary"
             onPress={handleConfirmSubmit}
             disabled={isSubmitting}
             loading={isSubmitting}
-            className="mb-4"
+            style={styles.primaryButton}
           />
           
           {!ocrFailed && (
@@ -374,7 +374,7 @@ export const ConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
               variant="secondary"
               onPress={handleManualEntry}
               disabled={isSubmitting}
-              className="mb-2"
+              style={styles.secondaryButton}
             />
           )}
           
@@ -390,3 +390,61 @@ export const ConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
     </ErrorBoundary>
   );
 };
+
+const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  container: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  sourceText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginBottom: 16,
+  },
+  errorContainer: {
+    marginBottom: 24,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  totalContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  totalText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  buttonContainer: {
+    marginTop: 32,
+  },
+  primaryButton: {
+    marginBottom: 16,
+  },
+  secondaryButton: {
+    marginBottom: 8,
+  },
+});
