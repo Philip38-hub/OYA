@@ -1,9 +1,10 @@
 /**
- * Integration test for OCR service with TensorFlow Lite
+ * Integration test for OCR service with ML Kit
  * This test verifies the complete OCR workflow
  */
 
 import { OCRService } from '../ocrService';
+import TextRecognition from '@react-native-ml-kit/text-recognition';
 
 // Mock dependencies
 jest.mock('expo-file-system', () => ({
@@ -13,19 +14,8 @@ jest.mock('expo-file-system', () => ({
   },
 }));
 
-jest.mock('@tensorflow/tfjs', () => ({
-  ready: jest.fn(),
-  loadGraphModel: jest.fn(),
-  expandDims: jest.fn(),
-  tensor3d: jest.fn(),
-  image: {
-    resizeBilinear: jest.fn(),
-    rgbToGrayscale: jest.fn(),
-  },
-  tidy: jest.fn(),
-  clipByValue: jest.fn(),
-  mul: jest.fn(),
-  div: jest.fn(),
+jest.mock('@react-native-ml-kit/text-recognition', () => ({
+  recognize: jest.fn(),
 }));
 
 describe('OCR Integration Tests', () => {
@@ -33,46 +23,48 @@ describe('OCR Integration Tests', () => {
     jest.clearAllMocks();
     // Reset service state
     (OCRService as any).isInitialized = false;
-    (OCRService as any).model = null;
   });
 
-  describe('TensorFlow Lite Integration', () => {
-    it('should initialize OCR service with TensorFlow Lite model', async () => {
-      const mockModel = { predict: jest.fn() };
-      const tf = require('@tensorflow/tfjs');
+  describe('ML Kit Integration', () => {
+    it('should initialize OCR service with ML Kit', async () => {
+      const mockMLKitResult = [
+        {
+          text: 'Test initialization',
+          bounding: { left: 0, top: 0, right: 100, bottom: 20 },
+          confidence: 0.9
+        }
+      ];
       
-      tf.ready.mockResolvedValue(undefined);
-      tf.loadGraphModel.mockResolvedValue(mockModel);
+      (TextRecognition.recognize as jest.Mock).mockResolvedValue(mockMLKitResult);
 
       await OCRService.initialize();
 
-      expect(tf.ready).toHaveBeenCalled();
-      expect(tf.loadGraphModel).toHaveBeenCalledWith(
-        expect.stringContaining('mobilenet')
-      );
+      expect(TextRecognition.recognize).toHaveBeenCalled();
       expect((OCRService as any).isInitialized).toBe(true);
-      expect((OCRService as any).model).toBe(mockModel);
     });
 
-    it('should process image with real TensorFlow model', async () => {
-      const mockModel = { 
-        predict: jest.fn().mockReturnValue({
-          data: jest.fn().mockResolvedValue(new Float32Array([0.1, 0.2, 0.3])),
-          dispose: jest.fn()
-        })
-      };
-      const tf = require('@tensorflow/tfjs');
-      const FileSystem = require('expo-file-system');
+    it('should process image with real ML Kit model', async () => {
+      const mockMLKitResult = [
+        {
+          text: 'JOHN DOE: 245',
+          bounding: { left: 10, top: 50, right: 200, bottom: 70 },
+          confidence: 0.92
+        },
+        {
+          text: 'JANE SMITH: 189',
+          bounding: { left: 10, top: 80, right: 200, bottom: 100 },
+          confidence: 0.88
+        },
+        {
+          text: 'SPOILT BALLOTS: 12',
+          bounding: { left: 10, top: 110, right: 200, bottom: 130 },
+          confidence: 0.85
+        }
+      ];
       
-      // Setup mocks
-      tf.ready.mockResolvedValue(undefined);
-      tf.loadGraphModel.mockResolvedValue(mockModel);
-      FileSystem.readAsStringAsync.mockResolvedValue('mock-base64-data');
-      
-      const mockTensor = { dispose: jest.fn() };
-      tf.tensor3d.mockReturnValue(mockTensor);
-      tf.image.resizeBilinear.mockReturnValue(mockTensor);
-      tf.expandDims.mockReturnValue(mockTensor);
+      (TextRecognition.recognize as jest.Mock)
+        .mockResolvedValueOnce([{ text: 'init', confidence: 0.9 }]) // For initialization
+        .mockResolvedValueOnce(mockMLKitResult); // For actual processing
 
       await OCRService.initialize();
       
@@ -83,31 +75,30 @@ describe('OCR Integration Tests', () => {
 
       expect(result).toBeDefined();
       expect(result.candidates).toBeDefined();
+      expect(result.candidates['JOHN DOE']).toBe(245);
+      expect(result.candidates['JANE SMITH']).toBe(189);
+      expect(result.spoilt).toBe(12);
       expect(result.confidence).toBeGreaterThan(0);
       expect(result.boundingBoxes).toBeDefined();
       expect(Array.isArray(result.boundingBoxes)).toBe(true);
+      expect(result.boundingBoxes).toHaveLength(3);
       
-      // Verify model was called
-      expect(mockModel.predict).toHaveBeenCalled();
+      // Verify ML Kit was called with correct URI
+      expect(TextRecognition.recognize).toHaveBeenCalledWith('file://test-image.jpg');
     });
 
     it('should handle image preprocessing correctly', async () => {
-      const mockModel = { predict: jest.fn() };
-      const tf = require('@tensorflow/tfjs');
-      const FileSystem = require('expo-file-system');
+      const mockMLKitResult = [
+        {
+          text: 'CANDIDATE A: 150',
+          bounding: { left: 0, top: 0, right: 100, bottom: 20 },
+          confidence: 0.9
+        }
+      ];
       
-      tf.ready.mockResolvedValue(undefined);
-      tf.loadGraphModel.mockResolvedValue(mockModel);
-      FileSystem.readAsStringAsync.mockResolvedValue('mock-base64-data');
-      
-      const mockTensor = { dispose: jest.fn() };
-      tf.tensor3d.mockReturnValue(mockTensor);
-      tf.image.resizeBilinear.mockReturnValue(mockTensor);
-      tf.tidy.mockImplementation((fn) => fn());
-      tf.image.rgbToGrayscale.mockReturnValue(mockTensor);
-      tf.mul.mockReturnValue(mockTensor);
-      tf.clipByValue.mockReturnValue(mockTensor);
-      tf.div.mockReturnValue(mockTensor);
+      (TextRecognition.recognize as jest.Mock)
+        .mockResolvedValueOnce([{ text: 'init', confidence: 0.9 }])
+        .mockResolvedValueOnce(mockMLKitResult);
 
       await OCRService.initialize();
       
@@ -116,21 +107,14 @@ describe('OCR Integration Tests', () => {
       });
 
       expect(result).toBeDefined();
-      expect(tf.image.rgbToGrayscale).toHaveBeenCalled();
-      expect(tf.mul).toHaveBeenCalled();
-      expect(tf.clipByValue).toHaveBeenCalled();
+      expect(result.extractedText).toContain('CANDIDATE A: 150');
+      expect(TextRecognition.recognize).toHaveBeenCalledWith('file://test-image.jpg');
     });
 
-    it('should fallback to mock processing when model fails', async () => {
-      const tf = require('@tensorflow/tfjs');
-      const FileSystem = require('expo-file-system');
-      
-      tf.ready.mockResolvedValue(undefined);
-      tf.loadGraphModel.mockRejectedValue(new Error('Model loading failed'));
-      FileSystem.readAsStringAsync.mockResolvedValue('mock-base64-data');
-      
-      const mockTensor = { dispose: jest.fn() };
-      tf.tensor3d.mockReturnValue(mockTensor);
+    it('should fallback to mock processing when ML Kit fails', async () => {
+      (TextRecognition.recognize as jest.Mock)
+        .mockResolvedValueOnce([{ text: 'init', confidence: 0.9 }]) // For initialization
+        .mockRejectedValueOnce(new Error('ML Kit processing failed')); // For actual processing
 
       await OCRService.initialize();
       
@@ -139,7 +123,65 @@ describe('OCR Integration Tests', () => {
       expect(result).toBeDefined();
       expect(result.candidates).toBeDefined();
       expect(result.confidence).toBeGreaterThan(0);
-      expect((OCRService as any).model).toBeNull();
+    });
+
+    it('should handle complex Form 34A layout', async () => {
+      const mockMLKitResult = [
+        {
+          text: 'FORM 34A - PRESIDENTIAL ELECTION RESULTS',
+          bounding: { left: 50, top: 10, right: 350, bottom: 30 },
+          confidence: 0.95
+        },
+        {
+          text: 'POLLING STATION: KIAMBU PRIMARY SCHOOL',
+          bounding: { left: 50, top: 40, right: 350, bottom: 60 },
+          confidence: 0.90
+        },
+        {
+          text: 'JOHN KAMAU: 245',
+          bounding: { left: 50, top: 80, right: 250, bottom: 100 },
+          confidence: 0.92
+        },
+        {
+          text: 'MARY WANJIKU: 189',
+          bounding: { left: 50, top: 110, right: 250, bottom: 130 },
+          confidence: 0.88
+        },
+        {
+          text: 'PETER MWANGI: 156',
+          bounding: { left: 50, top: 140, right: 250, bottom: 160 },
+          confidence: 0.85
+        },
+        {
+          text: 'SPOILT BALLOTS: 12',
+          bounding: { left: 50, top: 170, right: 250, bottom: 190 },
+          confidence: 0.90
+        },
+        {
+          text: 'TOTAL VOTES: 602',
+          bounding: { left: 50, top: 200, right: 250, bottom: 220 },
+          confidence: 0.93
+        }
+      ];
+      
+      (TextRecognition.recognize as jest.Mock)
+        .mockResolvedValueOnce([{ text: 'init', confidence: 0.9 }])
+        .mockResolvedValueOnce(mockMLKitResult);
+
+      await OCRService.initialize();
+      
+      const result = await OCRService.processImage('file://form34a.jpg', {
+        candidateNames: ['JOHN KAMAU', 'MARY WANJIKU', 'PETER MWANGI']
+      });
+
+      expect(result).toBeDefined();
+      expect(result.candidates['JOHN KAMAU']).toBe(245);
+      expect(result.candidates['MARY WANJIKU']).toBe(189);
+      expect(result.candidates['PETER MWANGI']).toBe(156);
+      expect(result.spoilt).toBe(12);
+      expect(result.extractedText).toContain('FORM 34A');
+      expect(result.extractedText).toContain('KIAMBU PRIMARY SCHOOL');
+      expect(result.boundingBoxes).toHaveLength(7);
     });
   });
 
@@ -222,6 +264,71 @@ describe('OCR Integration Tests', () => {
       expect(result1.spoilt).toBe(25);
       expect(result2.spoilt).toBe(30);
       expect(result3.spoilt).toBe(15);
+    });
+
+    it('should handle ML Kit text blocks with mixed content', async () => {
+      const formText = `
+        Some header text
+        ALICE JOHNSON: 320
+        Random text in between
+        BOB WILSON: 275
+        More random content
+        CAROL DAVIS: 198
+        Footer information
+        SPOILT BALLOTS: 8
+        Additional footer
+      `;
+
+      const result = await OCRService.extractVoteCounts(formText);
+
+      expect(result).toEqual({
+        'ALICE JOHNSON': 320,
+        'BOB WILSON': 275,
+        'CAROL DAVIS': 198,
+        spoilt: 8
+      });
+    });
+  });
+
+  describe('Fallback Parsing', () => {
+    it('should parse unstructured text with numbers', async () => {
+      const mockMLKitResult = [
+        {
+          text: 'Unstructured text with numbers 245 189 156 12',
+          bounding: { left: 0, top: 0, right: 300, bottom: 50 },
+          confidence: 0.8
+        }
+      ];
+      
+      (TextRecognition.recognize as jest.Mock)
+        .mockResolvedValueOnce([{ text: 'init', confidence: 0.9 }])
+        .mockResolvedValueOnce(mockMLKitResult);
+
+      await OCRService.initialize();
+      
+      const result = await OCRService.processImage('file://test-image.jpg', {
+        candidateNames: ['JOHN KAMAU', 'MARY WANJIKU', 'PETER MWANGI']
+      });
+
+      expect(result).toBeDefined();
+      expect(result.candidates['JOHN KAMAU']).toBe(245);
+      expect(result.candidates['MARY WANJIKU']).toBe(189);
+      expect(result.candidates['PETER MWANGI']).toBe(156);
+    });
+
+    it('should handle empty ML Kit results', async () => {
+      (TextRecognition.recognize as jest.Mock)
+        .mockResolvedValueOnce([{ text: 'init', confidence: 0.9 }])
+        .mockResolvedValueOnce([]);
+
+      await OCRService.initialize();
+      
+      const result = await OCRService.processImage('file://empty-image.jpg');
+
+      expect(result).toBeDefined();
+      expect(result.extractedText).toBe('');
+      expect(result.boundingBoxes).toEqual([]);
+      expect(result.confidence).toBeGreaterThan(0); // Should have fallback confidence
     });
   });
 });

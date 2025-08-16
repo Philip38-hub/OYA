@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Alert, StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import * as ImagePicker from 'expo-image-picker';
 import { Button, DocumentCamera, LoadingSpinner } from '@/components';
 import { RootStackParamList } from '@/types/navigation';
 import { CapturedImage } from '@/services/cameraService';
@@ -19,6 +20,51 @@ export const ImageCaptureScreen: React.FC<Props> = ({ navigation }) => {
   const handleStartCapture = () => {
     reset(); // Clear any previous results
     setShowCamera(true);
+  };
+
+  const handlePickFromGallery = async () => {
+    reset(); // Clear any previous results
+    
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your photo library to select images.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log('📷 Image selected from gallery:', asset.uri);
+        
+        const image: CapturedImage = {
+          uri: asset.uri,
+          width: asset.width || 1920,
+          height: asset.height || 1080,
+        };
+        
+        // Process the selected image with OCR
+        await processImage(image.uri, {
+          preprocessImage: true,
+          confidenceThreshold: 0.7,
+          candidateNames: ['JOHN KAMAU', 'MARY WANJIKU', 'PETER MWANGI', 'GRACE NJERI']
+        });
+      }
+    } catch (error) {
+      console.error('Failed to pick image from gallery:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
   };
 
   const handleImageCaptured = async (image: CapturedImage) => {
@@ -136,7 +182,7 @@ export const ImageCaptureScreen: React.FC<Props> = ({ navigation }) => {
       </Text>
       
       <Text style={styles.description}>
-        Capture Form 34A using your camera. The app will automatically extract vote counts using OCR processing.
+        Capture or select Form 34A image. The app will automatically extract vote counts using OCR processing.
       </Text>
       
       <View style={styles.placeholderContainer}>
@@ -153,6 +199,13 @@ export const ImageCaptureScreen: React.FC<Props> = ({ navigation }) => {
           variant="primary"
           onPress={handleStartCapture}
           style={styles.cameraButton}
+        />
+        
+        <Button
+          title="📁 Choose from Gallery"
+          variant="secondary"
+          onPress={handlePickFromGallery}
+          style={styles.galleryButton}
         />
         
         <Button
@@ -231,6 +284,9 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   cameraButton: {
+    marginBottom: 16,
+  },
+  galleryButton: {
     marginBottom: 16,
   },
   backButtonOverlay: {
