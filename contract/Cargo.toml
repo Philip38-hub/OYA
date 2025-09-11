@@ -1,0 +1,31 @@
+[package]
+name = "otc"
+version = "0.1.0"
+authors = ["elyg3672@gmail.com"]
+edition = "2021"
+
+[dependencies]
+ink = {git = "https://github.com/use-ink/ink.git", tag = "v6.0.0-alpha", default-features = false, features = ["unstable-hostfn"]  }
+ink_storage = { git = "https://github.com/use-ink/ink.git", tag = "v6.0.0-alpha", default-features = false, features = ["unstable-hostfn"]  }
+ink_env = { git = "https://github.com/use-ink/ink.git", tag = "v6.0.0-alpha", default-features = false, features = ["unstable-hostfn"]  }
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.6", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+ink_e2e = { git = "https://github.com/use-ink/ink.git", tag = "v6.0.0-alpha", default-features = false }
+
+[lib]
+path = "lib.rs"
+
+[features]
+default = []
+std = [
+    "ink/std",
+    "ink_storage/std",
+    "ink_env/std",
+    "scale/std",
+    "scale-info/std",
+    "ink_e2e/std",
+]
+ink-as-dependency = []
+e2e-tests = []
